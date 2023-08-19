@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.AssetFileDescriptor;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
@@ -272,11 +273,13 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
         }
 */
         private void updateMetadataFromTrack(ArgAudio track) {
-            metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, BitmapFactory.decodeResource(context.getResources(), track.getBkg()));
+            Bitmap bitmap = track.getBitmapCustom() != null ? track.getBitmapCustom() : BitmapFactory.decodeResource(context.getResources(), track.getBkg());
+            metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, bitmap);
             metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.getTitle());
             metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "");
             metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.getSinger());
-            metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.getDuration());
+            long duration = getDuration();
+            metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, getDuration());
             mediaSession.setMetadata(metadataBuilder.build());
         }
     };
@@ -317,7 +320,26 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
                     .setAudioAttributes(audioAttributes)
                     .build();
         }
-        mediaSession = new MediaSessionCompat(context, "PlayerService");
+
+        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null, context, MediaButtonReceiver.class);
+        PendingIntent pendingMediaIntent = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingMediaIntent = PendingIntent.getBroadcast(context, 0, mediaButtonIntent, PendingIntent.FLAG_MUTABLE);
+        } else {
+            pendingMediaIntent = PendingIntent.getBroadcast(context, 0, mediaButtonIntent, PendingIntent.FLAG_ONE_SHOT);
+        }
+
+        mediaSession = new MediaSessionCompat(context, "PlayerService", null, pendingMediaIntent); //context, "PlayerService"
+
+        // Укажем activity, которую запустит система, если пользователь
+        // заинтересуется подробностями данной сессии
+        Intent activityIntent = new Intent(context, currentActivity.getClass());
+        PendingIntent pendingIntentSession = PendingIntent.getActivity(context, 0, activityIntent, PendingIntent.FLAG_IMMUTABLE);
+        pendingIntentSession.cancel(); //stipid fix for twise open - todo fix
+        mediaSession.setSessionActivity(pendingIntentSession);
+
+        //Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null, context, MediaButtonReceiver.class);
+        mediaSession.setMediaButtonReceiver(pendingMediaIntent); //PendingIntent.getBroadcast(context, 0, mediaButtonIntent, PendingIntent.FLAG_MUTABLE)
 
         // FLAG_HANDLES_MEDIA_BUTTONS - хотим получать события от аппаратных кнопок
         // (например, гарнитуры)
@@ -331,17 +353,6 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
         mediaSession.setCallback(mediaSessionCallback);
 
        // Context appContext = getApplicationContext();
-
-        // Укажем activity, которую запустит система, если пользователь
-        // заинтересуется подробностями данной сессии
-
-
-        Intent activityIntent = new Intent(context, currentActivity.getClass());
-        mediaSession.setSessionActivity(
-                PendingIntent.getActivity(context, 0, activityIntent, PendingIntent.FLAG_IMMUTABLE));
-
-        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null, context, MediaButtonReceiver.class);
-        mediaSession.setMediaButtonReceiver(PendingIntent.getBroadcast(context, 0, mediaButtonIntent, PendingIntent.FLAG_IMMUTABLE));
 
       //  setButtonsCallback();
 
@@ -558,7 +569,6 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
     }
 
 
-
     public void destroy(){
         mediaSessionCallback.onStop();
         mediaSession.release();
@@ -607,10 +617,16 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
 
                     killMediaPlayer();
                     mediaPlayer = getLoadedMediaPlayer(context, audio);
-                    mediaPlayer.setOnPreparedListener(this);
                     mediaPlayer.setOnBufferingUpdateListener(this);
                     mediaPlayer.setOnCompletionListener(this);
                     mediaPlayer.setOnErrorListener(this);
+                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                        @Override
+                        public void onPrepared(MediaPlayer mediaPlayer) {
+                            mediaSessionCallback.onPlay();
+                            onPreparedMedia(mediaPlayer);
+                        }
+                    });
 
                     if (audio.getType() == URL)
                         mediaPlayer.prepareAsync();
@@ -618,8 +634,6 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
                         mediaPlayer.prepare();
 
                     mediaPlayerTimeOutCheck();
-
-                    mediaSessionCallback.onPlay();
 
                     // Other actions will be performed in onBufferingUpdate and OnPrepared methods
                 } catch (IOException e) {
@@ -734,7 +748,6 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
     }
 
 
-
     //region <MediaPlayerOverrides>
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
@@ -748,10 +761,16 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         String errDescription = "MediaPlayer.OnError: \nwhat:" + what + ",\nextra:" + extra;
+        System.out.println(errDescription);
+        System.out.println(errDescription);
+        System.out.println(errDescription);
         publishError(ErrorType.MEDIAPLAYER_ERROR, errDescription);
         return false;
     }
 
+    public void onPreparedMedia(MediaPlayer mp) {
+        onPrepared(mp);
+    }
     @Override
     public void onPrepared(MediaPlayer mp) {
         if (currentAudio == null)
@@ -762,6 +781,7 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
             startMediaPlayer();
             updateTimeThread();
         }
+
         onPreparedListener.onPrepared(currentAudio, mediaPlayer.getDuration());
     }
 
@@ -880,6 +900,7 @@ public class ArgMusicService extends Service implements MediaPlayer.OnPreparedLi
     private void killMediaPlayer() {
         setAudioState(NO_ACTION);
         if (mediaPlayer != null) {
+            mediaPlayer.pause();
             mediaPlayer.stop();
             mediaPlayer.reset();
             mediaPlayer.release();

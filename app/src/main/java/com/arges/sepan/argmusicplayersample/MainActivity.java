@@ -1,10 +1,14 @@
 package com.arges.sepan.argmusicplayersample;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.arges.sepan.argmusicplayer.ArgPlayerSmallViewRoot;
 import com.arges.sepan.argmusicplayer.Callbacks.OnCompletedListener;
@@ -21,29 +25,32 @@ import com.arges.sepan.argmusicplayer.PlayerViews.ArgPlayerSmallView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
-    public static final String Url1 = "https://www.gotinenstranan.com/songs/joan-baez-north-country-blues.mp3";   // 2.3 mb
-    public static final String Url2 = "https://www.gotinenstranan.com/songs/boney-m-rasputin.mp3";   // 4.2 mb
-    public static final String Url3 = "https://www.gotinenstranan.com/songs/s%CC%A7ehi%CC%82d%20arges%CC%A7%20-%20dara%20ji%CC%82ne%CC%82.mp3";   // 1.7 mb
-    public static final String Url4 = "https://www.gotinenstranan.com/songs/victor%20jara%20-%20la%20partida.mp3";   // 1.5 mb
-    public static final String Url5 = "https://www.gotinenstranan.com/songs/mark%20kelly%20%26%20soraya%20-%20under%20the%20jasmine%20tree.mp3";   // 1.5 mb
-    public static final String Url6 = "https://www.gotinenstranan.com/songs/koma%20wetan%20-%20fili%CC%82to%20lao.mp3";   // 2.1 mb
+    public static final String Url1 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 2.3 mb
+    public static final String Url2 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 4.2 mb
+    public static final String Url3 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 1.7 mb
+    public static final String Url4 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 1.5 mb
+    public static final String Url5 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 1.5 mb
+    public static final String Url6 = "https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3";   // 2.1 mb
     public static final int RawSong = R.raw.castle_in_the_sky;
     public static final String AssetSong = "koma gulên xerzan carek.mp3";
 
-    public static ArgAudio audioUrl1 = ArgAudio.createFromURL("Joan Baez", "North Country Blues", Url1);
-    public static ArgAudio audioUrl2 = ArgAudio.createFromURL("Boney M.", "Rasputin", MainActivity.Url2);
-    public static ArgAudio audioUrl3 = ArgAudio.createFromURL("Şehîd Argeş", "Dara Jînê", MainActivity.Url3);
-    public static ArgAudio audioUrl4 = ArgAudio.createFromURL("Vicor Jara", "La Partida", MainActivity.Url4);
-    public static ArgAudio audioUrl5 = ArgAudio.createFromURL("Mark Kelly & Soraya", "Under The Jasmine Tree", MainActivity.Url5);
-    public static ArgAudio audioUrl6 = ArgAudio.createFromURL("Koma Wetan", "Filîto Lawo", MainActivity.Url6);
+    public static ArgAudio audioUrl1 = ArgAudio.createFromURL("Joan Baez1", "North Country Blues", Url1);
+    public static ArgAudio audioUrl2 = ArgAudio.createFromURL("Joan Baez2", "North Country Blues", MainActivity.Url2);
+    public static ArgAudio audioUrl3 = ArgAudio.createFromURL("Joan Baez3", "North Country Blues", MainActivity.Url3);
+    public static ArgAudio audioUrl4 = ArgAudio.createFromURL("Joan Baez4", "North Country Blues", MainActivity.Url4);
+    public static ArgAudio audioUrl5 = ArgAudio.createFromURL("Joan Baez5", "North Country Blues", MainActivity.Url5);
+    public static ArgAudio audioUrl6 = ArgAudio.createFromURL("Joan Baez6", "North Country Blues", MainActivity.Url6);
     public static ArgAudio audioRaw = ArgAudio.createFromRaw("Joe Hisaishi", "Castle in the Sky", MainActivity.RawSong);
     public static ArgAudio audioAsset = ArgAudio.createFromAssets("Koma Gulên Xerzan", "Carek", MainActivity.AssetSong);
-    public static ArgAudio audioFile = ArgAudio.createFromFilePath("Andrea Bocelli", "Caruso", "/storage/emulated/0/Music/Andrea Bocelli Caruso.mp3");
+    public static ArgAudio audioFile = ArgAudio.createFromFilePath("Andrea Bocelli", "Caruso", "/storage/AE8D-F7C1/Download/324346720f1857e7aa31173a65e2dd27.mp3");
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        verifyStoragePermissions(this);
 
         findViewById(R.id.btnSmall).setOnClickListener(this);
         findViewById(R.id.btnLarge).setOnClickListener(this);
@@ -63,9 +70,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    // Storage Permissions
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
+    /**
+     * Checks if the app has permission to write to device storage
+     *
+     * If the app does not has permission then the user will be prompted to grant permissions
+     *
+     * @param activity
+     */
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
+    }
 
     private void allFunctions(){
-        final ArgAudio myAudio = new ArgAudio("Singer","My Audio","symphony9",AudioType.RAW);
+        final ArgAudio myAudio = new ArgAudio("Singer","My Audio","symphony9", AudioType.RAW);
         final ArgAudioList myPlaylist = new ArgAudioList(true);
         final OnErrorListener listener1=null;
         final OnPreparedListener listener2=null;
@@ -74,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final OnCompletedListener listener5=null;
         final OnTimeChangeListener listener6=null;
         final OnPlaylistAudioChangedListener listener7=null;
-        final ArgAudio audio = new ArgAudio("Singer","Large Mp3","http://www.url.of/music.mp3(m4a/wav etc..)", AudioType.URL);
+        final ArgAudio audio = new ArgAudio("Singer","Large Mp3","https://finemine.su/mobiletheater/Joan-Baez-North-Country-Blues.mp3", AudioType.URL);
 
         ArgPlayerSmallViewRoot small = new ArgPlayerSmallView(MainActivity.this);
         //-----------Methods-----------     ---Default---   ----------------------Description-----------------------

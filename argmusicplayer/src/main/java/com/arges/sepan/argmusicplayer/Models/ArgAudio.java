@@ -1,5 +1,7 @@
 package com.arges.sepan.argmusicplayer.Models;
 
+import android.graphics.Bitmap;
+
 import androidx.annotation.RawRes;
 
 import com.arges.sepan.argmusicplayer.Enums.AudioType;
@@ -10,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ArgAudio {
     private String singer, audioName, path;
     private int bitmapResId;
-    private long duration;
+    private Bitmap bitmapCustom;
     private boolean isPlaylist = false;
     private AudioType type;
     private int id = -1;
@@ -25,13 +27,21 @@ public class ArgAudio {
 
   //  int randomNum = ThreadLocalRandom.current().nextInt(0, 4 + 1);
 
+    public ArgAudio(String singer, String audioName, String path, AudioType type, Bitmap bitmapCustom) {
+        this.singer = singer;
+        this.audioName = audioName;
+        this.path = path;
+        this.type = type;
+        this.bitmapResId = getRndBkg();
+        this.bitmapCustom = bitmapCustom;
+    }
+
     public ArgAudio(String singer, String audioName, String path, AudioType type) {
         this.singer = singer;
         this.audioName = audioName;
         this.path = path;
         this.type = type;
         this.bitmapResId = getRndBkg();
-        this.duration = (3 * 60 + 41) * 1000;
     }
 
     public ArgAudio(int id, String singer, String audioName, String path, AudioType type) {
@@ -41,7 +51,6 @@ public class ArgAudio {
         this.type = type;
         this.id = id;
         this.bitmapResId = getRndBkg();
-        this.duration = (3 * 60 + 41) * 1000;
     }
 
     private int getRndBkg(){
@@ -64,6 +73,10 @@ public class ArgAudio {
         return new ArgAudio(singer, audioName, filePath, AudioType.FILE_PATH);
     }
 
+    public static ArgAudio createFromFilePath(String singer, String audioName, String filePath, Bitmap bitmapCustom) {
+        return new ArgAudio(singer, audioName, filePath, AudioType.FILE_PATH, bitmapCustom);
+    }
+
     public ArgAudio cloneAudio() {
         return new ArgAudio(id, singer, audioName, path, type);
     }
@@ -79,8 +92,9 @@ public class ArgAudio {
     public int getBkg() {
         return bitmapResId;
     }
-    public long getDuration() {
-        return duration;
+
+    public Bitmap getBitmapCustom() {
+        return bitmapCustom;
     }
 
     public String getTitle() {
